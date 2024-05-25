@@ -1,7 +1,8 @@
 use winapi::shared::minwindef::{WPARAM, LPARAM, BOOL};
-use winapi::shared::windef::HWND;
+use winapi::shared::windef::{HGDIOBJ, HWND};
+use winapi::um::wingdi::SelectObject;
 use winapi::um::winnt::LPWSTR;
-use winapi::um::winuser::{EnumChildWindows, WS_VISIBLE, WS_DISABLED, WS_EX_CONTROLPARENT};
+use winapi::um::winuser::{DT_CALCRECT, DT_LEFT, DrawTextW, EnumChildWindows, GetDC, ReleaseDC, WS_DISABLED, WS_EX_CONTROLPARENT, WS_VISIBLE};
 use crate::win32::{base_helper::{to_utf16, check_hwnd}, window_helper as wh};
 use crate::{NwgError, Font, RawEventHandler, unbind_raw_event_handler};
 use super::{ControlBase, ControlHandle};

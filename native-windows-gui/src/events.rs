@@ -121,7 +121,7 @@ pub enum Event {
     OnComboBoxDropdown,
 
     /// When the current selection of the combobox was changed
-    OnComboxBoxSelection,
+    OnComboBoxSelection,
 
     /// When the date select dropdown is expanded
     OnDatePickerDropdown,

@@ -782,7 +782,7 @@ fn combo_commands(m: u16) -> Event {
     match m {
         CBN_CLOSEUP => Event::OnComboBoxClosed,
         CBN_DROPDOWN => Event::OnComboBoxDropdown,
-        CBN_SELCHANGE => Event::OnComboxBoxSelection,
+        CBN_SELCHANGE => Event::OnComboBoxSelection,
         _ => Event::Unknown
     }
 }

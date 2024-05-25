@@ -52,7 +52,7 @@ Requires the `combobox` feature.
 **Control events:**
   * `OnComboBoxClosed`: When the combobox dropdown is closed
   * `OnComboBoxDropdown`: When the combobox dropdown is opened
-  * `OnComboxBoxSelection`: When a new value in a combobox is choosen
+  * `OnComboBoxSelection`: When a new value in a combobox is choosen
   * `MousePress(_)`: Generic mouse press events on the checkbox
   * `OnMouseMove`: Generic mouse mouse event
   * `OnMouseWheel`: Generic mouse wheel event

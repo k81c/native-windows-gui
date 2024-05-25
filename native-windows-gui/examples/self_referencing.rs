@@ -45,7 +45,7 @@ impl MyApp {
         let app = app_rc.clone();
         let handler = nwg::bind_event_handler(&app_rc.frame.handle, &app_rc.window.handle, move |evt, _evt_data, handle| {
             match evt {
-                nwg::Event::OnComboxBoxSelection => { 
+                nwg::Event::OnComboBoxSelection => { 
 
                     // Fetch the combobox here
                     let boxes = app.combo_boxes.borrow();
