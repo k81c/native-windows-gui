@@ -1,5 +1,6 @@
 use winapi::shared::minwindef::{WPARAM, LPARAM};
 use winapi::um::winuser::{WS_VSCROLL, WS_HSCROLL, ES_AUTOVSCROLL, ES_AUTOHSCROLL, WS_VISIBLE, WS_DISABLED, WS_TABSTOP};
+use winapi::um::winuser::LockWindowUpdate;
 use crate::win32::window_helper as wh;
 use crate::{Font, NwgError};
 use super::{ControlBase, ControlHandle};
@@ -342,15 +343,19 @@ impl TextBox {
     /// Append text to the current control
     pub fn append<'a>(&self, v: &'a str) {
         let text = self.text() + &unix2dos(&v).to_string();
+        unsafe { LockWindowUpdate(self.handle.hwnd().expect(BAD_HANDLE)) };
         self.set_text(&text);
         self.scroll_lastline();
+        unsafe { LockWindowUpdate(std::ptr::null_mut()) };
     }
 
     /// Append text to the current control followed by "\r\n"
     pub fn appendln<'a>(&self, v: &'a str) {
         let text = self.text() + &unix2dos(&v).to_string() + "\r\n";
+        unsafe { LockWindowUpdate(self.handle.hwnd().expect(BAD_HANDLE)) };
         self.set_text(&text);
         self.scroll_lastline();
+        unsafe { LockWindowUpdate(std::ptr::null_mut()) };
     }
     
     /// Winapi class name used during control creation
