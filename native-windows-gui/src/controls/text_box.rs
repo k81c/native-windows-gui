@@ -196,6 +196,12 @@ impl TextBox {
 
         dos2unix(&self.text()).chars().count().try_into().unwrap_or_default()
     }
+
+    pub fn len_real(&self) -> u32 {
+        use std::convert::TryInto;
+
+        self.text().chars().count().try_into().unwrap_or_default()
+    }
     
     /// Return the number of lines in the multiline edit control.
     /// If the control has no text, the return value is 1.
