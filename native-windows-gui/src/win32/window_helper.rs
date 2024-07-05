@@ -2,7 +2,7 @@ use super::base_helper::{to_utf16, from_utf16};
 use super::high_dpi;
 use winapi::shared::windef::{HFONT, HWND, HMENU};
 use winapi::shared::minwindef::{UINT, WPARAM, LPARAM, LRESULT};
-use winapi::um::winuser::WM_USER;
+use winapi::um::winuser::{GetWindowTextLengthW, WM_USER};
 use winapi::ctypes::c_int;
 use std::{ptr, mem};
 
@@ -267,10 +267,20 @@ pub unsafe fn get_window_text(handle: HWND) -> String {
 }
 
 pub unsafe fn set_window_text<'a>(handle: HWND, text: &'a str) {
-    use winapi::um::winuser::SetWindowTextW;
+    use winapi::um::winuser::{SetWindowTextW, EM_SETSEL, EM_REPLACESEL};
 
     let text = to_utf16(text);
     SetWindowTextW(handle, text.as_ptr());
+}
+
+pub unsafe fn append_window_text<'a>(handle: HWND, text: &'a str) {
+    use winapi::um::winuser::{SendMessageW, EM_SETSEL, EM_REPLACESEL};
+
+    let buffer_size = GetWindowTextLengthW(handle) as usize;
+
+    let text = to_utf16(text);
+    SendMessageW(handle, EM_SETSEL.into(), buffer_size as WPARAM, (buffer_size + text.len()) as LPARAM);
+    SendMessageW(handle, EM_REPLACESEL.into(), 0, text.as_ptr() as isize);
 }
 
 pub unsafe fn set_window_position(handle: HWND, x: i32, y: i32) {

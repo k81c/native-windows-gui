@@ -339,6 +339,13 @@ impl TextBox {
         unsafe { wh::set_window_text(handle, v) }
     }
 
+    /// Set the text displayed in the TextInput
+    pub fn append_text<'a>(&self, v: &'a str) {
+        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        let handle = self.handle.hwnd().expect(BAD_HANDLE);
+        unsafe { wh::append_window_text(handle, v) }
+    }
+
     /// Set the text in the current control, converting unix-style newlines in the input to "\r\n"
     pub fn set_text_unix2dos<'a>(&self, v: &'a str) {
         if self.handle.blank() { panic!("{}", NOT_BOUND); }
@@ -348,18 +355,18 @@ impl TextBox {
 
     /// Append text to the current control
     pub fn append<'a>(&self, v: &'a str) {
-        let text = self.text() + &unix2dos(&v).to_string();
+        let text = unix2dos(&v).to_string();
         unsafe { LockWindowUpdate(self.handle.hwnd().expect(BAD_HANDLE)) };
-        self.set_text(&text);
+        self.append_text(&text);
         self.scroll_lastline();
         unsafe { LockWindowUpdate(std::ptr::null_mut()) };
     }
 
     /// Append text to the current control followed by "\r\n"
     pub fn appendln<'a>(&self, v: &'a str) {
-        let text = self.text() + &unix2dos(&v).to_string() + "\r\n";
+        let text = unix2dos(&v).to_string() + "\r\n";
         unsafe { LockWindowUpdate(self.handle.hwnd().expect(BAD_HANDLE)) };
-        self.set_text(&text);
+        self.append_text(&text);
         self.scroll_lastline();
         unsafe { LockWindowUpdate(std::ptr::null_mut()) };
     }
