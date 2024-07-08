@@ -267,7 +267,7 @@ pub unsafe fn get_window_text(handle: HWND) -> String {
 }
 
 pub unsafe fn set_window_text<'a>(handle: HWND, text: &'a str) {
-    use winapi::um::winuser::{SetWindowTextW, EM_SETSEL, EM_REPLACESEL};
+    use winapi::um::winuser::{SetWindowTextW};
 
     let text = to_utf16(text);
     SetWindowTextW(handle, text.as_ptr());
