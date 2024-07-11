@@ -282,9 +282,7 @@ impl TabsContainer {
         let handler1 = bind_raw_event_handler_inner(&self.handle, handle as usize, move |hwnd, msg, _w, l| { unsafe {
             match msg {
                 WM_SIZE => {
-                    use winapi::shared::windef::{RECT, HGDIOBJ};
-                    use winapi::um::winuser::{GetDC, DrawTextW, ReleaseDC, DT_CALCRECT, DT_LEFT};
-                    use winapi::um::wingdi::SelectObject;
+                    use winapi::shared::windef::{RECT};
 
                     let size = l as u32;
                     let width = LOWORD(size) as i32;
@@ -744,7 +742,6 @@ unsafe extern "system" fn resize_direct_children(handle: HWND, params: LPARAM) -
     let params: &ResizeDirectChildrenParams = &*(params as *const ResizeDirectChildrenParams);
     if wh::get_window_parent(handle) == params.parent {
         wh::set_window_size(handle, params.width, params.height, false);
-
         let (x, _y) = wh::get_window_position(handle);
         wh::set_window_position(handle, x, params.tab_offset_y as i32);
     }

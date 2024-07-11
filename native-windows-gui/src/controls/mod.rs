@@ -178,4 +178,5 @@ pub use scroll_bar::{ScrollBar, ScrollBarBuilder, ScrollBarFlags};
 #[cfg(feature = "plotting")]
 pub use self::plotters::{Plotters, PlottersBuilder, PlottersDrawingArea, PlottersBackend, PlottersError};
 
+#[allow(unused)]
 pub use handle_from_control::*;
