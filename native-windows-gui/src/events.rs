@@ -269,6 +269,12 @@ pub enum Event {
 
     /// When a user clicks on the X button of a window
     OnWindowClose,
+
+    /// When the window is notified about a new device
+    OnDeviceAdded,
+
+    /// When the window is notified about a removed device
+    OnDeviceRemoved,
 }
 
 
