@@ -1069,14 +1069,15 @@ impl ListView {
 
     /// Winapi base flags used during window creation
     pub fn flags(&self) -> u32 {
-        WS_VISIBLE | WS_TABSTOP | LVS_SHOWSELALWAYS
+        use winapi::um::winuser::{WS_BORDER};
+        WS_VISIBLE | WS_BORDER | WS_TABSTOP | LVS_SHOWSELALWAYS
     }
 
     /// Winapi flags required by the control
     pub fn forced_flags(&self) -> u32 {
         use winapi::um::winuser::{WS_CHILD, WS_BORDER};
 
-        WS_CHILD | WS_BORDER | LVS_NOCOLUMNHEADER
+        WS_CHILD | LVS_NOCOLUMNHEADER
     }
 
     fn set_double_buffered(&mut self) {
