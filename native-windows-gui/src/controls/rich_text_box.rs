@@ -1,5 +1,5 @@
 use winapi::shared::minwindef::{WPARAM, LPARAM};
-use winapi::um::winuser::{ES_AUTOVSCROLL, ES_AUTOHSCROLL, WS_VISIBLE, WS_DISABLED, WS_TABSTOP, WS_VSCROLL, WS_HSCROLL};
+use winapi::um::winuser::{ES_AUTOVSCROLL, ES_AUTOHSCROLL, WS_VISIBLE, WS_DISABLED, WS_TABSTOP, WS_VSCROLL, WS_HSCROLL, LockWindowUpdate, EM_LINESCROLL};
 use crate::win32::window_helper as wh;
 use crate::win32::base_helper::check_hwnd;
 use crate::win32::richedit as rich;
@@ -387,6 +387,12 @@ impl RichTextBox {
 
         dos2unix(&self.text()).chars().count().try_into().unwrap_or_default()
     }
+
+    pub fn len_native(&self) -> u32 {
+        use std::convert::TryInto;
+
+        self.text().chars().count().try_into().unwrap_or_default()
+    }
     
     /// Return the number of lines in the multiline edit control.
     /// If the control has no text, the return value is 1.
@@ -407,9 +413,9 @@ impl RichTextBox {
     
     /// Get the linecount and then scroll the text to the last line
     pub fn scroll_lastline(&self) {
-        let lines = self.linecount();
-        self.scroll(lines * -1);
-        self.scroll(lines - 2);
+        use winapi::um::winuser::{WM_VSCROLL, SB_BOTTOM};
+        let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
+        wh::send_message(handle, WM_VSCROLL as u32, SB_BOTTOM as usize, 0 as LPARAM);
     }
 
     /// Return true if the TextInput value cannot be edited. Retrurn false otherwise.
@@ -508,6 +514,13 @@ impl RichTextBox {
         unsafe { wh::set_window_text(handle, v) }
     }
 
+    /// Set the text displayed in the TextInput
+    pub fn append_text<'a>(&self, v: &'a str) {
+        if self.handle.blank() { panic!("{}", NOT_BOUND); }
+        let handle = self.handle.hwnd().expect(BAD_HANDLE);
+        unsafe { wh::append_window_text(handle, v) }
+    }
+
     /// Set the text in the current control, converting unix-style newlines in the input to "\r\n"
     pub fn set_text_unix2dos<'a>(&self, v: &'a str) {
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
@@ -517,15 +530,19 @@ impl RichTextBox {
     /// Append text to the current control
     pub fn append<'a>(&self, v: &'a str) {
         let text = self.text() + &unix2dos(&v).to_string();
-        self.set_text(&text);
+        unsafe { LockWindowUpdate(self.handle.hwnd().expect(BAD_HANDLE)) };
+        self.append_text(&text);
         self.scroll_lastline();
+        unsafe { LockWindowUpdate(std::ptr::null_mut()) };
     }
 
     /// Append text to the current control followed by "\r\n"
     pub fn appendln<'a>(&self, v: &'a str) {
         let text = self.text() + &unix2dos(&v).to_string() + "\r\n";
-        self.set_text(&text);
+        unsafe { LockWindowUpdate(self.handle.hwnd().expect(BAD_HANDLE)) };
+        self.append_text(&text);
         self.scroll_lastline();
+        unsafe { LockWindowUpdate(std::ptr::null_mut()) };
     }
 
     /// Winapi class name used during control creation

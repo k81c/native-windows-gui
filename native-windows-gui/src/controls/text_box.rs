@@ -197,7 +197,7 @@ impl TextBox {
         dos2unix(&self.text()).chars().count().try_into().unwrap_or_default()
     }
 
-    pub fn len_real(&self) -> u32 {
+    pub fn len_native(&self) -> u32 {
         use std::convert::TryInto;
 
         self.text().chars().count().try_into().unwrap_or_default()
