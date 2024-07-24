@@ -1,5 +1,5 @@
 use winapi::shared::minwindef::{WPARAM, LPARAM};
-use winapi::um::winuser::{ES_AUTOVSCROLL, ES_AUTOHSCROLL, WS_VISIBLE, WS_DISABLED, WS_TABSTOP, WS_VSCROLL, WS_HSCROLL, LockWindowUpdate, EM_LINESCROLL};
+use winapi::um::winuser::{ES_AUTOVSCROLL, ES_AUTOHSCROLL, WS_VISIBLE, WS_DISABLED, WS_TABSTOP, WS_VSCROLL, WS_HSCROLL, LockWindowUpdate};
 use crate::win32::window_helper as wh;
 use crate::win32::base_helper::check_hwnd;
 use crate::win32::richedit as rich;

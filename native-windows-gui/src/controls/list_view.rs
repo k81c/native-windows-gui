@@ -1075,7 +1075,7 @@ impl ListView {
 
     /// Winapi flags required by the control
     pub fn forced_flags(&self) -> u32 {
-        use winapi::um::winuser::{WS_CHILD, WS_BORDER};
+        use winapi::um::winuser::{WS_CHILD};
 
         WS_CHILD | LVS_NOCOLUMNHEADER
     }

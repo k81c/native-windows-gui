@@ -1068,7 +1068,6 @@ unsafe fn is_textbox_control(hwnd: HWND) -> bool {
 //
 
 #[cfg(target_env="gnu")] use std::{sync::Mutex, collections::HashMap};
-use std::os::raw::c_void;
 
 #[cfg(target_env="gnu")]
 type SubclassId = (usize, usize, UINT_PTR);
