@@ -612,7 +612,7 @@ impl GridLayoutBuilder {
 
         /// Keep generating ids so that multiple layouts can be applied to the same parent
         use std::sync::atomic::{AtomicUsize, Ordering};
-        static BOX_LAYOUT_ID: AtomicUsize = AtomicUsize::new(0x8FFF); 
+        static BOX_LAYOUT_ID: AtomicUsize = AtomicUsize::new(0x7FFF);
         bind_raw_event_handler_inner(&base_handle, BOX_LAYOUT_ID.fetch_add(1, Ordering::SeqCst), cb).unwrap();
 
         Ok(())
