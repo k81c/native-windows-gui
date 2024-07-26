@@ -242,6 +242,32 @@ impl<D: Display+Default> ComboBox<D> {
         wh::send_message(handle, CB_INSERTSTRING, index, display_os.as_ptr() as LPARAM);
     }
 
+    /// Replace an item in the collection
+    pub fn replace(&self, index: usize, item: D) {
+        use winapi::um::winuser::{CB_INSERTSTRING, CB_DELETESTRING};
+
+        let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
+
+        let display = format!("{}", item);
+        let display_os = to_utf16(&display);
+
+        let mut col = self.collection.borrow_mut();
+        if index >= col.len() {
+            return;
+        }
+
+        col[index] = item;
+
+        let selected= self.selection().unwrap_or(0);
+
+        wh::send_message(handle, CB_DELETESTRING, index as WPARAM, 0);
+        wh::send_message(handle, CB_INSERTSTRING, index, display_os.as_ptr() as LPARAM);
+
+        if index == selected{
+            self.set_selection(Some(index));
+        }
+    }
+
     /// Update the visual of the control with the inner collection.
     /// This rebuild every item in the combobox and can take some time on big collections.
     pub fn sync(&self) {
