@@ -53,7 +53,7 @@ fn load_icon_builder() -> nwg::Icon {
 #[allow(unused)]
 pub struct Icon {
     pub handle: HANDLE,
-    pub(crate) owned: bool
+    pub owned: bool
 }
 
 impl Icon {
