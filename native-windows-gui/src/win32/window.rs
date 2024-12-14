@@ -213,7 +213,7 @@ pub fn unbind_event_handler(handler: &EventHandler)
             }
 
             callback_ptr = callback_value as *mut *const Callback;
-            let callback: Rc<Callback> = Rc::from_raw(*callback_ptr);
+            let callback: Rc<Callback> = Rc::from_raw(*Box::from_raw(callback_ptr));
 
             // Remove the window subclass before dropping the callback to prevent the
             // subclass window procedure from being called during the drop.
