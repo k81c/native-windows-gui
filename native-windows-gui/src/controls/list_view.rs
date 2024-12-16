@@ -1078,6 +1078,16 @@ impl Drop for ListView {
     fn drop(&mut self) {
         use winapi::um::wingdi::DeleteObject;
 
+        // DeleteObject will free the HIMAGELIST. We don't want
+        // that, because the ImageList object is supposed to
+        // own the HIMAGELIST.
+        if self.handle.hwnd().is_some() {
+            self.set_image_list(None, crate::ListViewImageListType::Normal);
+            self.set_image_list(None, crate::ListViewImageListType::Small);
+            self.set_image_list(None, crate::ListViewImageListType::State);
+            self.set_image_list(None, crate::ListViewImageListType::GroupHeader);
+        }
+
         if let Some(backbuffer) = self.double_buffer.take() {
             let double_buffer = backbuffer.borrow();
             unsafe {
