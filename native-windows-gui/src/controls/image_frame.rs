@@ -57,6 +57,7 @@ pub struct ImageFrame {
     pub handle: ControlHandle,
     background_brush: Option<HBRUSH>,
     handler0: RefCell<Option<RawEventHandler>>,
+    is_icon: bool,
 }
 
 impl ImageFrame {
@@ -76,9 +77,15 @@ impl ImageFrame {
 
     /// Sets the bitmap image of the image frame. Replace the current bitmap or icon.
     /// Set `image` to `None` to remove the image
+    ///
+    /// # Panics
+    ///
+    /// A control can't switch between icons and bitmaps. If you try, this function panics.
     pub fn set_bitmap<'a>(&self, image: Option<&'a Bitmap>) {
         use winapi::um::winuser::{STM_SETIMAGE, IMAGE_BITMAP};
         use winapi::shared::minwindef::{WPARAM, LPARAM};
+
+        assert!(!self.is_icon, "control cannot switch between icon and bitmap styles");
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
@@ -91,9 +98,15 @@ impl ImageFrame {
 
     /// Sets the bitmap image of the image frame. Replace the current bitmap or icon.
     /// Set `image` to `None` to remove the image
+    ///
+    /// # Panics
+    ///
+    /// A control can't switch between icons and bitmaps. If you try, this function panics.
     pub fn set_icon<'a>(&self, image: Option<&'a Icon>) {
         use winapi::um::winuser::{STM_SETIMAGE, IMAGE_ICON};
         use winapi::shared::minwindef::{WPARAM, LPARAM};
+
+        assert!(self.is_icon, "control cannot switch between icon and bitmap styles");
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
@@ -311,6 +324,7 @@ impl<'a> ImageFrameBuilder<'a> {
         }?;
 
         *out = Default::default();
+        out.is_icon = self.icon.is_some();
 
         out.handle = ControlBase::build_hwnd()
             .class_name(out.class_name())
