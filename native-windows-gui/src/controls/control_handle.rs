@@ -1,4 +1,4 @@
-use winapi::shared::windef::{HWND, HMENU};
+use winapi::shared::{minwindef::{LPARAM, LRESULT, UINT, WPARAM}, windef::{HMENU, HWND}};
 use crate::win32::window_helper as wh;
 
 
@@ -102,8 +102,26 @@ impl ControlHandle {
         }
     }
 
-}
+    /// Returns the raw HWND of the control
+    pub fn window_handle(&self) -> Option<HWND> {
+        Some(match self{
+            ControlHandle::Hwnd(h) => h,
+            ControlHandle::PopMenu(h, _) => h,
+            ControlHandle::Notice(h, _) => h,
+            ControlHandle::Timer(h, _) => h,
+            ControlHandle::SystemTray(h) => h,
+            _ => return None,
+        }.clone())
+    }
 
+    /// Passes a raw window message down to the control
+    pub fn pass_raw_message(&self, msg: UINT, w: WPARAM, l: LPARAM) -> Option<LRESULT>
+    {
+        let wh = self.window_handle()?;
+        Some(wh::send_message(wh, msg, w, l))
+    }
+
+}
 
 impl Default for ControlHandle {
 
