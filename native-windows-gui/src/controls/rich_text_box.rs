@@ -1,7 +1,7 @@
 use winapi::shared::minwindef::{WPARAM, LPARAM};
-use winapi::um::winuser::{ES_AUTOVSCROLL, ES_AUTOHSCROLL, WS_VISIBLE, WS_DISABLED, WS_TABSTOP, WS_VSCROLL, WS_HSCROLL, LockWindowUpdate};
+use winapi::um::winuser::{EM_REPLACESEL, ES_AUTOHSCROLL, ES_AUTOVSCROLL, WS_DISABLED, WS_HSCROLL, WS_TABSTOP, WS_VISIBLE, WS_VSCROLL, LockWindowUpdate};
 use crate::win32::window_helper as wh;
-use crate::win32::base_helper::check_hwnd;
+use crate::win32::base_helper::{check_hwnd, to_utf16};
 use crate::win32::richedit as rich;
 use crate::{Font, NwgError};
 use super::{ControlBase, ControlHandle};
@@ -96,11 +96,10 @@ pub struct CharFormat {
     pub underline_type: Option<UnderlineType>,
 }
 
-
 #[derive(Copy, Clone, Debug)]
 /// Options used for bulleted or numbered paragraphs. 
 pub enum ParaNumbering {
-    /// No paragraph numbering or bullets. 
+    /// No paragraph numbering or bullets.
     None,
 
     /// Insert a bullet at the beginning of each selected paragraph. 
@@ -360,24 +359,30 @@ impl RichTextBox {
     }
 
     /// Return the selected range of characters by the user in the text input
-    pub fn selection(&self) -> Range<u32> {
+    pub fn selection(&self) -> Range<i32> {
         use winapi::um::winuser::EM_GETSEL;
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
 
-        let (mut out1, mut out2) = (0u32, 0u32);
-        let (ptr1, ptr2) = (&mut out1 as *mut u32, &mut out2 as *mut u32);
+        let (mut out1, mut out2) = (0i32, 0i32);
+        let (ptr1, ptr2) = (&mut out1 as *mut i32, &mut out2 as *mut i32);
         wh::send_message(handle, EM_GETSEL as u32, ptr1 as WPARAM, ptr2 as LPARAM);
 
-        Range { start: out1 as u32, end: out2 as u32 }
+        Range { start: out1 as i32, end: out2 as i32 }
     }
 
-    /// Return the selected range of characters by the user in the text input
-    pub fn set_selection(&self, r: Range<u32>) {
+    /// Set a range of characters to be selected in the text input
+    pub fn set_selection(&self, r: Range<i32>) {
         use winapi::um::winuser::EM_SETSEL;
 
         let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
         wh::send_message(handle, EM_SETSEL as u32, r.start as usize, r.end as isize);
+    }
+
+    /// Clears the selection in the text input
+    pub fn clear_selection(&self)
+    {
+        self.set_selection(-1 .. -1);
     }
 
     /// Return the length of the user input in the control. Performs a newline conversion first since
@@ -527,20 +532,70 @@ impl RichTextBox {
         unsafe { wh::set_window_text(handle,  &unix2dos(&v).to_string()) }
     }
 
+    /// Replaces the text in the current selection
+    pub fn replace_selection_raw<'a>(&self, v: &'a str)
+    {
+        let text = to_utf16(v);
+        let handle = check_hwnd(&self.handle, NOT_BOUND, BAD_HANDLE);
+        wh::send_message(handle, EM_REPLACESEL as u32, 0, text.as_ptr() as LPARAM);
+    }
+
+    pub fn replace_selection_unix2dos<'a>(&self, v: &'a str)
+    {
+        self.replace_selection_raw(&unix2dos(v).to_string());
+    }
+
+    /// Appends a dos string(\r\n line endings) to the current control
+    pub fn append_raw<'a>(&self, v: &'a str)
+    {
+        // backup and restore the selection
+        let selection = self.selection();
+
+        // MDSN: If there is no selection, the replacement text is inserted at the caret.
+        self.clear_selection();
+        self.replace_selection_raw(v);
+
+        self.set_selection(selection);
+    }
+
     /// Append text to the current control
     pub fn append<'a>(&self, v: &'a str) {
-        let text = self.text() + &unix2dos(&v).to_string();
-        unsafe { LockWindowUpdate(self.handle.hwnd().expect(BAD_HANDLE)) };
-        self.append_text(&text);
+        let text = &unix2dos(&v).to_string();
+        self.append_raw(&text);
         self.scroll_lastline();
-        unsafe { LockWindowUpdate(std::ptr::null_mut()) };
+    }
+
+    /// Appends styled text to the current control
+    pub fn append_styled<'a>(&self, v: &'a str, char_format: Option<CharFormat>, para_format: Option<ParaFormat>) {
+        let text = &unix2dos(&v).to_string();
+        let original_selection = self.selection();
+
+        let selection_start = self.len();
+        self.append_raw(&text);
+        self.set_selection(selection_start as i32 .. self.len() as i32);
+        if let Some(fmt) = &char_format{
+            self.set_char_format(fmt);
+        }
+
+        if let Some(fmt) = &para_format
+        {
+            self.set_para_format(fmt);
+        }
+
+        self.set_selection(original_selection);
     }
 
     /// Append text to the current control followed by "\r\n"
     pub fn appendln<'a>(&self, v: &'a str) {
-        let text = self.text() + &unix2dos(&v).to_string() + "\r\n";
-        unsafe { LockWindowUpdate(self.handle.hwnd().expect(BAD_HANDLE)) };
-        self.append_text(&text);
+        let text = unix2dos(&v).to_string() + "\r\n";
+        self.append_raw(&text);
+        self.scroll_lastline();
+    }
+    
+    /// Appends styled text to the current control followed by "\r\n"
+    pub fn appendln_styled<'a>(&self, v: &'a str, char_format: Option<CharFormat>, para_format: Option<ParaFormat>) {
+        let text = v.to_string() + "\n";
+        self.append_styled(&text, char_format, para_format);
         self.scroll_lastline();
         unsafe { LockWindowUpdate(std::ptr::null_mut()) };
     }

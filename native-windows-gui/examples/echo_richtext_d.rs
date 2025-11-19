@@ -8,15 +8,6 @@ extern crate native_windows_derive as nwd;
 use nwd::NwgUi;
 use nwg::NativeUi;
 use std::fs;
-use std::cell::RefCell;
-
-#[derive(Default)]
-pub struct StyleSection {
-    start: u32,
-    end: u32,
-    char_format: Option<nwg::CharFormat>,
-    para_format: Option<nwg::ParaFormat>,
-}
 
 #[derive(Default, NwgUi)]
 pub struct EchoApp {
@@ -63,9 +54,53 @@ pub struct EchoApp {
     #[nwg_layout_item(layout: grid, col: 7, row: 4, col_span: 2)]
     #[nwg_events( OnButtonClick: [EchoApp::submit] )]
     b5: nwg::Button,
-
-    style_sections: RefCell<Vec<StyleSection>>,
 }
+
+const UNDERLINE: nwg::CharFormat = nwg::CharFormat{
+    effects: Some(nwg::CharEffects::UNDERLINE),
+    height: None,
+    y_offset: None,
+    text_color: None,
+    font_face_name: None,
+    underline_type: None,
+};
+
+const BULLET: nwg::ParaFormat = nwg::ParaFormat{
+    numbering: None,
+    numbering_style: None,
+    numbering_tab: None,
+    alignment: None,
+    space_before: None,
+    space_after: None,
+    start_indent: Some(300),
+    right_indent: Some(300),
+    offset: None,
+    line_spacing: Some(nwg::ParaLineSpacing::Double),
+    rtl: None,
+};
+
+const HEADER_CHF: nwg::CharFormat = nwg::CharFormat{
+    effects: nwg::CharEffects::from_bits(nwg::CharEffects::BOLD.bits() | nwg::CharEffects::ITALIC.bits()),
+    height: Some(350),
+    text_color: Some([150, 50, 50]),
+    y_offset: None,
+    font_face_name: None,
+    underline_type: None,
+};
+
+const HEADER_PF: nwg::ParaFormat = nwg::ParaFormat{
+    alignment: Some(nwg::ParaAlignment::Center),
+    numbering: None,
+    numbering_style: None,
+    numbering_tab: None,
+    space_before: None,
+    space_after: None,
+    start_indent: None,
+    right_indent: None,
+    offset: None,
+    line_spacing: None,
+    rtl: None,
+};
 
 impl EchoApp {
     pub fn load_text(&self, data: &nwg::EventData) {
@@ -78,92 +113,41 @@ impl EchoApp {
         }
         
         self.rich_text_box.appendln(&text);
-        self.apply_styles();
     }
 
     pub fn init_text(&self) {
         self.rich_text_box.set_text_unix2dos("Each button on the right does one of the following:\n");
         self.rich_text_box.append("\r\nClears the rich text box, removing all text and associated formatting.\r\n");
-        self.text_input.set_text("Echoes the text in the input box with underline styling.");
-        self.underline();
-        self.text_input.set_text("Echoes the text in the input box as a bullet point.");
-        self.bullet();
-        self.text_input.set_text("Echoes the text in the input box with header styling.");
-        self.header();
-        self.text_input.set_text("Echoes the text in the input box with no styling.");
-        self.submit();
+
+        self.rich_text_box.appendln_styled("Echoes the text in the input box with underline styling.", Some(UNDERLINE), None);
+        self.rich_text_box.appendln_styled("Echoes the text in the input box as a bullet point.", None, Some(BULLET));
+        
+        self.rich_text_box.appendln_styled("Echoes the text in the input box with header styling.", Some(HEADER_CHF), Some(HEADER_PF));
+        self.rich_text_box.appendln("Echoes the text in the input box with no styling.");
     }
 
     pub fn clear(&self) {
         self.rich_text_box.clear();
-        self.style_sections.borrow_mut().clear();
     }
 
     pub fn underline(&self) {
-        let mut style_section = StyleSection { start: self.rich_text_box.len(), ..Default::default()};
-        style_section.char_format = Some(nwg::CharFormat {
-            effects: Some(nwg::CharEffects::UNDERLINE),
-            ..Default::default()
-        });
-        self.rich_text_box.appendln(&self.text_input.text());
-        style_section.end = self.rich_text_box.len();
-        self.style_sections.borrow_mut().push(style_section);
+        self.rich_text_box.appendln_styled(&self.text_input.text(), Some(UNDERLINE), None);
         self.text_input.set_text("");
-        self.apply_styles();
     }
 
     pub fn bullet(&self) {
-        let mut style_section = StyleSection { start: self.rich_text_box.len(), ..Default::default()};
-        style_section.para_format = Some(nwg::ParaFormat {
-            start_indent: Some(300),
-            right_indent: Some(300),
-            line_spacing: Some(nwg::ParaLineSpacing::Double),
-            numbering: Some(nwg::ParaNumbering::Bullet),
-            numbering_tab: Some(200),
-            ..Default::default()
-        });
-        self.rich_text_box.appendln(&self.text_input.text());
-        style_section.end = self.rich_text_box.len();
-        self.style_sections.borrow_mut().push(style_section);
+        self.rich_text_box.appendln_styled(&self.text_input.text(), None, Some(BULLET));
         self.text_input.set_text("");
-        self.apply_styles();
     }
 
     pub fn header(&self) {
-        let mut style_section = StyleSection { start: self.rich_text_box.len(), ..Default::default()};
-        style_section.char_format = Some(nwg::CharFormat {
-            effects: Some(nwg::CharEffects::BOLD | nwg::CharEffects::ITALIC),
-            height: Some(350),
-            text_color: Some([150, 50, 50]),
-            ..Default::default()
-        });
-        style_section.para_format = Some(nwg::ParaFormat {
-            alignment: Some(nwg::ParaAlignment::Center),
-            ..Default::default()
-        });
-        self.rich_text_box.appendln(&self.text_input.text());
-        style_section.end = self.rich_text_box.len();
-        self.style_sections.borrow_mut().push(style_section);
+        self.rich_text_box.appendln_styled(&self.text_input.text(), Some(HEADER_CHF), Some(HEADER_PF));
         self.text_input.set_text("");
-        self.apply_styles();
-    }
-
-    pub fn apply_styles(&self){
-        for style_section in self.style_sections.borrow().iter() {   
-            self.rich_text_box.set_selection(style_section.start..style_section.end);
-            if let Some(p) = &style_section.para_format {
-                self.rich_text_box.set_para_format(p);
-            }
-            if let Some(c) = &style_section.char_format {
-                self.rich_text_box.set_char_format(c);
-            }
-        }
     }
 
     pub fn submit(&self) {
         self.rich_text_box.appendln(&self.text_input.text());
         self.text_input.set_text("");
-        self.apply_styles();
     }
 }
 
