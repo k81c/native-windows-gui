@@ -3,11 +3,13 @@ use winapi::um::winuser::WM_LBUTTONUP;
 use std::cell::RefCell;
 
 
-struct MessageBoxOnDrop {}
+struct MessageBoxOnDrop<'a> {
+    msg: &'a str
+}
 
-impl Drop for MessageBoxOnDrop {
+impl<'a> Drop for MessageBoxOnDrop<'a> {
     fn drop(&mut self) {
-        simple_message("Dropped", "A MessageBoxOnDrop object was dropped");
+        simple_message("Dropped", format!("A MessageBoxOnDrop object({}) was dropped", self.msg).as_str());
     }
 }
 
@@ -60,10 +62,10 @@ impl FreeingTest {
             data.raw_handler_bound = true;
             data.raw_callback_id += 1;
 
-            let message = MessageBoxOnDrop{};
+            let message = MessageBoxOnDrop{msg: "moved"};
             let handler = bind_raw_event_handler_inner(&self.custom_bind_button.handle, data.raw_callback_id, move |_hwnd, msg, _w, _l| {
                 if msg == WM_LBUTTONUP {
-                    &message;
+                    let _ = &message;
                     simple_message("Raw handler", &"Hello from raw dynamic handler");
                 }
                 None
@@ -85,14 +87,14 @@ impl FreeingTest {
             self.bind_handler_btn2.set_text("Unbind handler");
             data.handler_bound = true;
 
-            let message = MessageBoxOnDrop{};
+            let message = MessageBoxOnDrop{msg: "moved"};
             let bind_handler_btn2 = self.custom_bind_button2.handle;
 
             let handler = bind_event_handler(&self.custom_bind_button2.handle, &self.window.handle, move |event, _event_data, ctrl| {
                 match event {
                     Event::OnButtonClick => {
                         if &ctrl == &bind_handler_btn2 {    
-                            &message;
+                            let _ = &message;
                             simple_message("Handler", &"Hello from dynamic handler");
                         }
                     },

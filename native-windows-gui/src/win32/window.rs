@@ -205,22 +205,23 @@ pub fn unbind_event_handler(handler: &EventHandler)
     let mut callback_ptr: *mut *const Callback = ptr::null_mut();
 
     for &handle in handler.handles.iter() {
-        unsafe { 
             let mut callback_value: UINT_PTR = 0;
-            let result = GetWindowSubclass(handle, id, subclass_id, &mut callback_value);
-            if result == 0 {
+            let result = unsafe {
+                    GetWindowSubclass(handle, id, subclass_id, &mut callback_value)
+            };
+            if result == 0 || callback_value == 0 {
                 panic!("Parent of hander was either freed or is already unbound");
             }
 
             callback_ptr = callback_value as *mut *const Callback;
-            let callback: Rc<Callback> = Rc::from_raw(*Box::from_raw(callback_ptr));
+            let callback: Rc<Callback> = unsafe { Rc::from_raw(*callback_ptr) };
+            // let callback: Rc<Callback> = Rc::from_raw(*Box::from_raw(callback_ptr));
 
             // Remove the window subclass before dropping the callback to prevent the
             // subclass window procedure from being called during the drop.
-            RemoveWindowSubclass(handle, id, subclass_id);
+            unsafe { RemoveWindowSubclass(handle, id, subclass_id); }
 
             mem::drop(callback);
-        };
     }
 
     // Finally free the pointer to the pointer to the callback
@@ -236,10 +237,10 @@ pub(crate) fn bind_raw_event_handler_inner<F>(handle: &ControlHandle, handler_id
     let subclass_proc: SUBCLASSPROC = Some(process_raw_events);
     
     let handle = match handle {
-        &ControlHandle::Hwnd(h) => unsafe {
+        &ControlHandle::Hwnd(h) => {
             // Check if the handler is already bound to the control
             let mut tmp_value = 0;
-            let result = GetWindowSubclass(h, subclass_proc, handler_id, &mut tmp_value);
+            let result = unsafe { GetWindowSubclass(h, subclass_proc, handler_id, &mut tmp_value) };
             if result != 0 {
                 return Err(NwgError::events_binding(format!("Events id {} is already present on this", handler_id)))
             }
@@ -248,7 +249,7 @@ pub(crate) fn bind_raw_event_handler_inner<F>(handle: &ControlHandle, handler_id
             let boxed_proc: Box<RawCallback> = Box::new(f);
             let boxed_proc_wrapper: Box<*mut RawCallback> = Box::new(Box::into_raw(boxed_proc));
             let proc_data: *mut *mut RawCallback = Box::into_raw(boxed_proc_wrapper);
-            SetWindowSubclass(h, subclass_proc, handler_id, proc_data as UINT_PTR);
+            unsafe { SetWindowSubclass(h, subclass_proc, handler_id, proc_data as UINT_PTR) };
 
             h
         },
@@ -327,30 +328,29 @@ pub fn unbind_raw_event_handler(handler: &RawEventHandler) -> Result<(), NwgErro
     let handler_id = handler.handler_id;
     let handle = handler.handle;
 
-    unsafe {
-        let mut callback_value: UINT_PTR = 0;
-        let result = GetWindowSubclass(handle, subclass_proc, handler_id, &mut callback_value);
-        if result == 0 {
-            let err = format!(concat!(
-                "Could not fetch raw event handler #{:?}.",
-                "This can happen if the control ({:?}) was freed or",
-                "if this raw event handler was already unbound"
-            ), handler_id, handle);
-            return Err(NwgError::EventsBinding(err));
-        }
-
-        let callback_wrapper_ptr = callback_value as *mut *mut RawCallback;
-        let callback_wrapper: Box<*mut RawCallback> = Box::from_raw(callback_wrapper_ptr);
-        let callback: Box<RawCallback> = Box::from_raw(*callback_wrapper);
-        
-        // Remove the window subclass before dropping the callback to prevent the
-        // subclass window procedure from being called during the drop.
-        RemoveWindowSubclass(handle, subclass_proc, handler_id);
-
-        mem::drop(callback);
-
-        Ok(())
+    let mut callback_value: UINT_PTR = 0;
+    
+    let result = unsafe {GetWindowSubclass(handle, subclass_proc, handler_id, &mut callback_value) };
+    if result == 0 {
+        let err = format!(concat!(
+            "Could not fetch raw event handler #{:?}.",
+            "This can happen if the control ({:?}) was freed or",
+            "if this raw event handler was already unbound"
+        ), handler_id, handle);
+        return Err(NwgError::EventsBinding(err));
     }
+
+    let callback_wrapper_ptr = callback_value as *mut *mut RawCallback;
+    let callback_wrapper: Box<*mut RawCallback> = unsafe { Box::from_raw(callback_wrapper_ptr) };
+    let callback: Box<RawCallback> = unsafe { Box::from_raw(*callback_wrapper) };
+    
+    // Remove the window subclass before dropping the callback to prevent the
+    // subclass window procedure from being called during the drop.
+    unsafe { RemoveWindowSubclass(handle, subclass_proc, handler_id) };
+
+    mem::drop(callback);
+
+    Ok(())
 }
 
 /**
@@ -751,7 +751,7 @@ unsafe extern "system" fn process_raw_events(hwnd: HWND, msg: UINT, w: WPARAM, l
     let callback: Box<RawCallback> = Box::from_raw(*callback_wrapper_ptr);
 
     let result = callback(hwnd, msg, w, l);
-    Box::into_raw(callback);
+    let _ = Box::into_raw(callback);
 
     match result {
         Some(r) => r,
